@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Builds
+dist/
+build/
+
+# Uploaded User Documents
+server/uploads/*
+!server/uploads/.gitkeep
+
+# System & OS
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
