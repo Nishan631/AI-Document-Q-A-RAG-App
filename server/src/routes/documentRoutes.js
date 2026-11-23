@@ -7,7 +7,9 @@ import { Document } from '../models/Document.js';
 import { Chunk } from '../models/Chunk.js';
 import { Message } from '../models/Message.js';
 import { requireAuth } from '../middleware/auth.js';
-import { extractTextPerPage } from '../utils/pdfExtractor.js';
+import { processDocumentIngestion } from '../services/ingestionService.js';
+import { searchSimilarChunks } from '../services/ragService.js';
+import { streamAnswer, generateAnswer } from '../services/llmService.js';
 
 const router = express.Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -46,7 +48,7 @@ const upload = multer({
 // All document routes require authentication
 router.use(requireAuth);
 
-// POST /documents - Upload a PDF, extract text per page, and save
+// POST /documents - Upload a PDF, returns immediately with status 'processing'
 router.post('/', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -57,7 +59,7 @@ router.post('/', upload.single('file'), async (req, res) => {
     const filePath = req.file.path;
     const fileUrl = `/uploads/${path.basename(filePath)}`;
 
-    // Create document record initially in 'processing' status
+    // Create document record in 'processing' status
     const doc = await Document.create({
       userId: req.user._id,
       title,
@@ -68,52 +70,26 @@ router.post('/', upload.single('file'), async (req, res) => {
       status: 'processing',
     });
 
-    try {
-      // Extract text page-by-page
-      const extraction = await extractTextPerPage(filePath);
-
-      if (extraction.isScannedOrEmpty) {
-        doc.status = 'failed';
-        doc.errorMessage = 'No selectable text found in PDF. This document may be scanned or empty.';
-        doc.pageCount = extraction.pageCount;
-        await doc.save();
-
-        return res.status(400).json({
-          error: doc.errorMessage,
-          document: doc,
-        });
-      }
-
-      doc.pageCount = extraction.pageCount;
-      doc.extractedPages = extraction.pages;
-      doc.status = 'ready';
-      await doc.save();
-
-      return res.status(201).json({
-        message: 'PDF uploaded and parsed successfully',
-        document: {
-          id: doc._id,
-          title: doc.title,
-          fileName: doc.fileName,
-          fileUrl: doc.fileUrl,
-          fileSize: doc.fileSize,
-          pageCount: doc.pageCount,
-          status: doc.status,
-          createdAt: doc.createdAt,
-          pagesExtracted: doc.extractedPages.length,
-        },
+    // Start background ingestion asynchronously without blocking the response
+    setImmediate(() => {
+      processDocumentIngestion(doc._id).catch((err) => {
+        console.error(`Background ingestion failure for doc ${doc._id}:`, err);
       });
-    } catch (extractError) {
-      console.error('PDF extraction failed:', extractError);
-      doc.status = 'failed';
-      doc.errorMessage = `Failed to extract text from PDF: ${extractError.message}`;
-      await doc.save();
+    });
 
-      return res.status(500).json({
-        error: doc.errorMessage,
-        document: doc,
-      });
-    }
+    // Return immediately to client
+    return res.status(202).json({
+      message: 'PDF uploaded. Ingestion and vectorization in progress.',
+      document: {
+        id: doc._id,
+        title: doc.title,
+        fileName: doc.fileName,
+        fileUrl: doc.fileUrl,
+        fileSize: doc.fileSize,
+        status: doc.status,
+        createdAt: doc.createdAt,
+      },
+    });
   } catch (error) {
     console.error('Document upload error:', error);
     return res.status(500).json({ error: error.message || 'Error processing document upload' });
@@ -146,7 +122,14 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Document not found' });
     }
 
-    return res.json({ document: doc });
+    const chunkCount = await Chunk.countDocuments({ documentId: doc._id });
+
+    return res.json({
+      document: {
+        ...doc.toObject(),
+        chunkCount,
+      },
+    });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to fetch document' });
   }
@@ -176,6 +159,163 @@ router.get('/:id/pages', async (req, res) => {
   }
 });
 
+// POST /documents/:id/reindex - Re-trigger ingestion
+router.post('/:id/reindex', async (req, res) => {
+  try {
+    const doc = await Document.findOne({
+      _id: req.params.id,
+      userId: req.user._id,
+    });
+
+    if (!doc) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    setImmediate(() => {
+      processDocumentIngestion(doc._id).catch(console.error);
+    });
+
+    return res.json({ message: 'Re-indexing initiated', status: 'processing' });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to trigger re-indexing' });
+  }
+});
+
+// POST /documents/:id/ask - Question in, streamed answer plus sources out (SSE)
+router.post('/:id/ask', async (req, res) => {
+  try {
+    const { question, conversationId } = req.body;
+    if (!question || !question.trim()) {
+      return res.status(400).json({ error: 'Question is required' });
+    }
+
+    const doc = await Document.findOne({
+      _id: req.params.id,
+      userId: req.user._id,
+    });
+
+    if (!doc) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    if (doc.status !== 'ready') {
+      return res.status(400).json({
+        error: `Document is currently ${doc.status}. Please wait until it is ready.`,
+      });
+    }
+
+    const convId = conversationId || `conv-${doc._id}-${Date.now()}`;
+
+    // 1. Retrieve top 5 semantically closest chunks
+    const sources = await searchSimilarChunks({
+      userId: req.user._id,
+      documentId: doc._id,
+      query: question.trim(),
+      limit: 5,
+    });
+
+    // 2. Persist user message in DB
+    await Message.create({
+      conversationId: convId,
+      documentId: doc._id,
+      userId: req.user._id,
+      role: 'user',
+      content: question.trim(),
+    });
+
+    // 3. Setup Server-Sent Events headers for live token streaming
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable proxy buffering
+    res.flushHeaders();
+
+    // Send metadata event with retrieved sources and conversationId
+    res.write(
+      `data: ${JSON.stringify({
+        type: 'meta',
+        conversationId: convId,
+        sources: sources.map((s, idx) => ({
+          sourceIndex: idx + 1,
+          chunkId: s.chunkId,
+          pageNumber: s.pageNumber,
+          snippet: s.snippet,
+          score: s.score,
+        })),
+      })}\n\n`
+    );
+
+    let fullAnswer = '';
+
+    // 4. Stream tokens from LLM
+    await streamAnswer({
+      question: question.trim(),
+      contextChunks: sources,
+      onToken: (token) => {
+        fullAnswer += token;
+        res.write(`data: ${JSON.stringify({ type: 'token', token })}\n\n`);
+      },
+      onComplete: async (completedText) => {
+        // Save assistant message with sources to database
+        try {
+          const assistantMsg = await Message.create({
+            conversationId: convId,
+            documentId: doc._id,
+            userId: req.user._id,
+            role: 'assistant',
+            content: completedText || fullAnswer,
+            sources: sources.map((s) => ({
+              chunkId: s.chunkId,
+              pageNumber: s.pageNumber,
+              snippet: s.snippet,
+              score: s.score,
+            })),
+          });
+
+          res.write(
+            `data: ${JSON.stringify({
+              type: 'done',
+              messageId: assistantMsg._id,
+              fullAnswer: completedText || fullAnswer,
+            })}\n\n`
+          );
+        } catch (dbErr) {
+          console.error('Error saving assistant message:', dbErr);
+        } finally {
+          res.end();
+        }
+      },
+      onError: (err) => {
+        console.error('LLM streaming error:', err);
+        res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+        res.end();
+      },
+    });
+  } catch (error) {
+    console.error('Ask endpoint error:', error);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: error.message || 'Failed to answer question' });
+    }
+    res.end();
+  }
+});
+
+// GET /documents/:id/conversations - Chat history
+router.get('/:id/conversations', async (req, res) => {
+  try {
+    const messages = await Message.find({
+      documentId: req.params.id,
+      userId: req.user._id,
+    })
+      .sort({ createdAt: 1 })
+      .select('conversationId role content sources createdAt');
+
+    return res.json({ messages });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to fetch conversation history' });
+  }
+});
+
 // DELETE /documents/:id - Delete document and all related artifacts
 router.delete('/:id', async (req, res) => {
   try {
@@ -188,7 +328,6 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Document not found' });
     }
 
-    // Remove file from disk if it exists
     if (doc.filePath && fs.existsSync(doc.filePath)) {
       try {
         fs.unlinkSync(doc.filePath);
@@ -197,7 +336,6 @@ router.delete('/:id', async (req, res) => {
       }
     }
 
-    // Delete chunks, messages, and document record
     await Promise.all([
       Chunk.deleteMany({ documentId: doc._id }),
       Message.deleteMany({ documentId: doc._id }),
