@@ -40,4 +40,7 @@ const chunkSchema = new mongoose.Schema(
 // Compound index for fast filtering by user and document
 chunkSchema.index({ userId: 1, documentId: 1, chunkIndex: 1 });
 
+// Full-text search index for keyword / BM25 search
+chunkSchema.index({ text: 'text' });
+
 export const Chunk = mongoose.model('Chunk', chunkSchema);

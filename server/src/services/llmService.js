@@ -12,7 +12,8 @@ const GEMINI_STREAM_URL = `https://generativelanguage.googleapis.com/v1beta/${MO
 export const buildPrompt = (question, contextChunks) => {
   const formattedSources = contextChunks
     .map((chunk, index) => {
-      return `--- SOURCE [${index + 1}] (Page ${chunk.pageNumber}) ---\n${chunk.text}\n`;
+      const docLabel = chunk.documentTitle ? ` [Doc: ${chunk.documentTitle}]` : '';
+      return `--- SOURCE [${index + 1}]${docLabel} (Page ${chunk.pageNumber}) ---\n${chunk.text}\n`;
     })
     .join('\n');
 
@@ -38,7 +39,7 @@ ANSWER (with bracketed citations like [1], [2]):`;
 };
 
 /**
- * Non-streaming answer generator
+ * Non-streaming answer generator with automatic 429 rate-limit retry & backoff
  */
 export const generateAnswer = async ({ question, contextChunks }) => {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -47,25 +48,45 @@ export const generateAnswer = async ({ question, contextChunks }) => {
   const prompt = buildPrompt(question, contextChunks);
   const url = `${GEMINI_GEN_URL}?key=${apiKey}`;
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.2, // Low temperature for high factual precision
-        maxOutputTokens: 1024,
-      },
-    }),
-  });
+  let attempts = 0;
+  const maxAttempts = 4;
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error?.message || `LLM generation failed with status ${res.status}`);
+  while (attempts < maxAttempts) {
+    try {
+      attempts++;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 1024,
+          },
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 429 && attempts < maxAttempts) {
+          const waitMs = 3000 * attempts;
+          console.warn(`[LLM Rate Limit 429] Waiting ${waitMs / 1000}s before retry ${attempts}/${maxAttempts}...`);
+          await new Promise((r) => setTimeout(r, waitMs));
+          continue;
+        }
+        throw new Error(data.error?.message || `LLM generation failed with status ${res.status}`);
+      }
+
+      const textPart = data.candidates?.[0]?.content?.parts?.find((p) => p.text);
+      return textPart?.text || 'No response generated.';
+    } catch (err) {
+      if (attempts >= maxAttempts) throw err;
+      await new Promise((r) => setTimeout(r, 2500 * attempts));
+    }
   }
 
-  const textPart = data.candidates?.[0]?.content?.parts?.find((p) => p.text);
-  return textPart?.text || 'No response generated.';
+  throw new Error('LLM generation exceeded retry attempts');
 };
 
 /**
@@ -110,7 +131,7 @@ export const streamAnswer = async ({ question, contextChunks, onToken, onComplet
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop(); // keep partial line in buffer
+      buffer = lines.pop();
 
       for (const line of lines) {
         const trimmed = line.trim();

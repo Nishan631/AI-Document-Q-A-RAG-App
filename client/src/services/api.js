@@ -112,6 +112,16 @@ export const api = {
     return data;
   },
 
+  async reindexDocument(id) {
+    const res = await fetch(`${API_BASE}/documents/${id}/reindex`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to reindex document');
+    return data;
+  },
+
   async deleteDocument(id) {
     const res = await fetch(`${API_BASE}/documents/${id}`, {
       method: 'DELETE',
@@ -120,5 +130,78 @@ export const api = {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to delete document');
     return data;
+  },
+
+  // RAG Q&A
+  async getConversations(documentId) {
+    const res = await fetch(`${API_BASE}/documents/${documentId}/conversations`, {
+      headers: getHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch conversations');
+    return data;
+  },
+
+  async askQuestionStream(
+    documentId,
+    question,
+    conversationId,
+    { onMeta, onToken, onDone, onError }
+  ) {
+    const token = localStorage.getItem('docu_token');
+    try {
+      const res = await fetch(`${API_BASE}/documents/${documentId}/ask`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ question, conversationId }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Request failed with status ${res.status}`);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('data: ')) {
+            const jsonStr = trimmed.slice(6).trim();
+            if (jsonStr === '[DONE]') continue;
+
+            try {
+              const event = JSON.parse(jsonStr);
+              if (event.type === 'meta' && onMeta) {
+                onMeta(event);
+              } else if (event.type === 'token' && onToken) {
+                onToken(event.token);
+              } else if (event.type === 'done' && onDone) {
+                onDone(event);
+              } else if (event.type === 'error' && onError) {
+                onError(new Error(event.error));
+              }
+            } catch (parseErr) {
+              // Ignore partial chunk decode
+            }
+          }
+        }
+      }
+    } catch (err) {
+      if (onError) onError(err);
+      else throw err;
+    }
   },
 };

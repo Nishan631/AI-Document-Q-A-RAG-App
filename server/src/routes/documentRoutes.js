@@ -7,9 +7,15 @@ import { Document } from '../models/Document.js';
 import { Chunk } from '../models/Chunk.js';
 import { Message } from '../models/Message.js';
 import { requireAuth } from '../middleware/auth.js';
-import { processDocumentIngestion } from '../services/ingestionService.js';
+import { askRateLimiter, uploadRateLimiter } from '../middleware/rateLimiter.js';
+import { addIngestionJob } from '../config/queue.js';
 import { searchSimilarChunks } from '../services/ragService.js';
 import { streamAnswer, generateAnswer } from '../services/llmService.js';
+import {
+  getCachedQuery,
+  setCachedQuery,
+  invalidateDocumentCache,
+} from '../services/cacheService.js';
 
 const router = express.Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -48,8 +54,8 @@ const upload = multer({
 // All document routes require authentication
 router.use(requireAuth);
 
-// POST /documents - Upload a PDF, returns immediately with status 'processing'
-router.post('/', upload.single('file'), async (req, res) => {
+// POST /documents - Upload a PDF with rate limiter
+router.post('/', uploadRateLimiter, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Please provide a PDF file' });
@@ -59,7 +65,6 @@ router.post('/', upload.single('file'), async (req, res) => {
     const filePath = req.file.path;
     const fileUrl = `/uploads/${path.basename(filePath)}`;
 
-    // Create document record in 'processing' status
     const doc = await Document.create({
       userId: req.user._id,
       title,
@@ -68,18 +73,15 @@ router.post('/', upload.single('file'), async (req, res) => {
       fileUrl,
       fileSize: req.file.size,
       status: 'processing',
+      ingestionProgress: 5,
+      ingestionStep: 'Upload received. Ingestion queued...',
     });
 
-    // Start background ingestion asynchronously without blocking the response
-    setImmediate(() => {
-      processDocumentIngestion(doc._id).catch((err) => {
-        console.error(`Background ingestion failure for doc ${doc._id}:`, err);
-      });
-    });
+    const queueInfo = await addIngestionJob(doc._id);
 
-    // Return immediately to client
     return res.status(202).json({
       message: 'PDF uploaded. Ingestion and vectorization in progress.',
+      queue: queueInfo,
       document: {
         id: doc._id,
         title: doc.title,
@@ -87,6 +89,8 @@ router.post('/', upload.single('file'), async (req, res) => {
         fileUrl: doc.fileUrl,
         fileSize: doc.fileSize,
         status: doc.status,
+        ingestionProgress: doc.ingestionProgress,
+        ingestionStep: doc.ingestionStep,
         createdAt: doc.createdAt,
       },
     });
@@ -100,7 +104,7 @@ router.post('/', upload.single('file'), async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const documents = await Document.find({ userId: req.user._id })
-      .select('title fileName fileUrl fileSize pageCount status errorMessage createdAt')
+      .select('title fileName fileUrl fileSize pageCount status ingestionProgress ingestionStep errorMessage createdAt')
       .sort({ createdAt: -1 });
 
     return res.json({ documents });
@@ -171,9 +175,14 @@ router.post('/:id/reindex', async (req, res) => {
       return res.status(404).json({ error: 'Document not found' });
     }
 
-    setImmediate(() => {
-      processDocumentIngestion(doc._id).catch(console.error);
-    });
+    await invalidateDocumentCache(doc._id);
+
+    doc.status = 'processing';
+    doc.ingestionProgress = 0;
+    doc.ingestionStep = 'Re-indexing initiated...';
+    await doc.save();
+
+    await addIngestionJob(doc._id);
 
     return res.json({ message: 'Re-indexing initiated', status: 'processing' });
   } catch (error) {
@@ -181,10 +190,13 @@ router.post('/:id/reindex', async (req, res) => {
   }
 });
 
-// POST /documents/:id/ask - Question in, streamed answer plus sources out (SSE)
-router.post('/:id/ask', async (req, res) => {
+// Minimum similarity threshold (cosine / RRF baseline)
+const RELEVANCE_CONFIDENCE_THRESHOLD = 0.50;
+
+// POST /documents/:id/ask - Hybrid Search + Redis Caching + Rate Limiting
+router.post('/:id/ask', askRateLimiter, async (req, res) => {
   try {
-    const { question, conversationId } = req.body;
+    const { question, conversationId, searchMode = 'hybrid' } = req.body;
     if (!question || !question.trim()) {
       return res.status(400).json({ error: 'Question is required' });
     }
@@ -205,78 +217,190 @@ router.post('/:id/ask', async (req, res) => {
     }
 
     const convId = conversationId || `conv-${doc._id}-${Date.now()}`;
+    const cleanQ = question.trim();
 
-    // 1. Retrieve top 5 semantically closest chunks
-    const sources = await searchSimilarChunks({
+    // 1. Check Redis / In-memory Cache for repeated questions
+    const cached = await getCachedQuery(doc._id, cleanQ);
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    if (cached) {
+      // Instant cache hit response!
+      res.write(
+        `data: ${JSON.stringify({
+          type: 'meta',
+          conversationId: convId,
+          cached: true,
+          topScore: cached.topScore,
+          isGrounded: cached.isGrounded !== false,
+          sources: cached.sources,
+        })}\n\n`
+      );
+
+      // Stream cached answer tokens rapidly
+      const words = (cached.answer || '').split(' ');
+      for (const w of words) {
+        res.write(`data: ${JSON.stringify({ type: 'token', token: w + ' ' })}\n\n`);
+        await new Promise((r) => setTimeout(r, 15));
+      }
+
+      await Message.create({
+        conversationId: convId,
+        documentId: doc._id,
+        userId: req.user._id,
+        role: 'user',
+        content: cleanQ,
+      });
+
+      const assistantMsg = await Message.create({
+        conversationId: convId,
+        documentId: doc._id,
+        userId: req.user._id,
+        role: 'assistant',
+        content: cached.answer,
+        sources: cached.sources,
+      });
+
+      res.write(
+        `data: ${JSON.stringify({
+          type: 'done',
+          messageId: assistantMsg._id,
+          fullAnswer: cached.answer,
+          isGrounded: cached.isGrounded !== false,
+          cached: true,
+        })}\n\n`
+      );
+      return res.end();
+    }
+
+    // 2. Perform Hybrid Search (Vector + Keyword BM25 with Reciprocal Rank Fusion)
+    const rawSources = await searchSimilarChunks({
       userId: req.user._id,
       documentId: doc._id,
-      query: question.trim(),
+      query: cleanQ,
       limit: 5,
+      mode: searchMode,
     });
 
-    // 2. Persist user message in DB
+    const topScore = rawSources.length > 0 ? (rawSources[0].score || rawSources[0].rrfScore || 0) : 0;
+    const isBelowThreshold = topScore < RELEVANCE_CONFIDENCE_THRESHOLD;
+
+    const filteredSources = isBelowThreshold
+      ? []
+      : rawSources.filter((s) => (s.score || s.rrfScore || 0) >= 0.25);
+
+    // Persist user question
     await Message.create({
       conversationId: convId,
       documentId: doc._id,
       userId: req.user._id,
       role: 'user',
-      content: question.trim(),
+      content: cleanQ,
     });
 
-    // 3. Setup Server-Sent Events headers for live token streaming
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no'); // Disable proxy buffering
-    res.flushHeaders();
+    // Send metadata
+    const mappedSources = filteredSources.map((s, idx) => ({
+      sourceIndex: idx + 1,
+      chunkId: s.chunkId,
+      documentTitle: doc.title,
+      pageNumber: s.pageNumber,
+      snippet: s.snippet,
+      text: s.text,
+      score: Number((s.score || s.rrfScore || 0).toFixed(3)),
+      retrievalType: s.retrievalType || 'hybrid',
+    }));
 
-    // Send metadata event with retrieved sources and conversationId
     res.write(
       `data: ${JSON.stringify({
         type: 'meta',
         conversationId: convId,
-        sources: sources.map((s, idx) => ({
-          sourceIndex: idx + 1,
-          chunkId: s.chunkId,
-          pageNumber: s.pageNumber,
-          snippet: s.snippet,
-          score: s.score,
-        })),
+        cached: false,
+        topScore: Number(topScore.toFixed(3)),
+        isGrounded: !isBelowThreshold && mappedSources.length > 0,
+        sources: mappedSources,
       })}\n\n`
     );
 
+    // Refusal handling if out of domain
+    if (isBelowThreshold || mappedSources.length === 0) {
+      const refusalText =
+        `I cannot find the answer to this question in the provided document.\n\n` +
+        `*(Retrieval Confidence: ${(topScore * 100).toFixed(1)}%, which is below the minimum relevance threshold of ${(RELEVANCE_CONFIDENCE_THRESHOLD * 100)}% for this document).*`;
+
+      const words = refusalText.split(' ');
+      for (const w of words) {
+        res.write(`data: ${JSON.stringify({ type: 'token', token: w + ' ' })}\n\n`);
+        await new Promise((r) => setTimeout(r, 20));
+      }
+
+      const assistantMsg = await Message.create({
+        conversationId: convId,
+        documentId: doc._id,
+        userId: req.user._id,
+        role: 'assistant',
+        content: refusalText,
+        sources: [],
+      });
+
+      // Cache refusal as well to avoid repeating expensive search
+      await setCachedQuery(doc._id, cleanQ, {
+        answer: refusalText,
+        sources: [],
+        topScore,
+        isGrounded: false,
+      });
+
+      res.write(
+        `data: ${JSON.stringify({
+          type: 'done',
+          messageId: assistantMsg._id,
+          fullAnswer: refusalText,
+          isGrounded: false,
+        })}\n\n`
+      );
+      return res.end();
+    }
+
     let fullAnswer = '';
 
-    // 4. Stream tokens from LLM
+    // 3. Stream grounded LLM generation
     await streamAnswer({
-      question: question.trim(),
-      contextChunks: sources,
+      question: cleanQ,
+      contextChunks: filteredSources,
       onToken: (token) => {
         fullAnswer += token;
         res.write(`data: ${JSON.stringify({ type: 'token', token })}\n\n`);
       },
       onComplete: async (completedText) => {
-        // Save assistant message with sources to database
         try {
+          const finalAnswer = completedText || fullAnswer;
           const assistantMsg = await Message.create({
             conversationId: convId,
             documentId: doc._id,
             userId: req.user._id,
             role: 'assistant',
-            content: completedText || fullAnswer,
-            sources: sources.map((s) => ({
-              chunkId: s.chunkId,
-              pageNumber: s.pageNumber,
-              snippet: s.snippet,
-              score: s.score,
-            })),
+            content: finalAnswer,
+            sources: mappedSources,
+          });
+
+          // Store in Redis / memory cache (TTL: 24h)
+          await setCachedQuery(doc._id, cleanQ, {
+            answer: finalAnswer,
+            sources: mappedSources,
+            topScore,
+            isGrounded: true,
           });
 
           res.write(
             `data: ${JSON.stringify({
               type: 'done',
               messageId: assistantMsg._id,
-              fullAnswer: completedText || fullAnswer,
+              fullAnswer: finalAnswer,
+              isGrounded: true,
             })}\n\n`
           );
         } catch (dbErr) {
@@ -295,6 +419,136 @@ router.post('/:id/ask', async (req, res) => {
     console.error('Ask endpoint error:', error);
     if (!res.headersSent) {
       return res.status(500).json({ error: error.message || 'Failed to answer question' });
+    }
+    res.end();
+  }
+});
+
+// POST /documents/ask-multi - Multi-Document Hybrid Q&A
+router.post('/ask-multi', askRateLimiter, async (req, res) => {
+  try {
+    const { question, documentIds, conversationId } = req.body;
+    if (!question || !question.trim()) {
+      return res.status(400).json({ error: 'Question is required' });
+    }
+
+    if (!documentIds || !Array.isArray(documentIds) || documentIds.length === 0) {
+      return res.status(400).json({ error: 'At least one documentId is required' });
+    }
+
+    // Verify ownership of all target documents
+    const validDocs = await Document.find({
+      _id: { $in: documentIds },
+      userId: req.user._id,
+      status: 'ready',
+    });
+
+    if (validDocs.length === 0) {
+      return res.status(400).json({ error: 'None of the selected documents are ready for Q&A' });
+    }
+
+    const targetDocIds = validDocs.map((d) => d._id);
+    const cleanQ = question.trim();
+    const convId = conversationId || `multi-conv-${Date.now()}`;
+
+    // 1. Check multi-document query cache
+    const cached = await getCachedQuery(targetDocIds, cleanQ);
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    if (cached) {
+      res.write(
+        `data: ${JSON.stringify({
+          type: 'meta',
+          conversationId: convId,
+          cached: true,
+          sources: cached.sources,
+        })}\n\n`
+      );
+
+      const words = (cached.answer || '').split(' ');
+      for (const w of words) {
+        res.write(`data: ${JSON.stringify({ type: 'token', token: w + ' ' })}\n\n`);
+        await new Promise((r) => setTimeout(r, 15));
+      }
+
+      res.write(
+        `data: ${JSON.stringify({
+          type: 'done',
+          fullAnswer: cached.answer,
+          cached: true,
+        })}\n\n`
+      );
+      return res.end();
+    }
+
+    // 2. Hybrid search across multiple documents
+    const rawSources = await searchSimilarChunks({
+      userId: req.user._id,
+      documentIds: targetDocIds,
+      query: cleanQ,
+      limit: 6,
+      mode: 'hybrid',
+    });
+
+    const mappedSources = rawSources.map((s, idx) => ({
+      sourceIndex: idx + 1,
+      chunkId: s.chunkId,
+      documentId: s.documentId,
+      documentTitle: s.documentTitle || 'Document',
+      pageNumber: s.pageNumber,
+      snippet: s.snippet,
+      text: s.text,
+      score: Number((s.score || s.rrfScore || 0).toFixed(3)),
+      retrievalType: s.retrievalType || 'hybrid',
+    }));
+
+    res.write(
+      `data: ${JSON.stringify({
+        type: 'meta',
+        conversationId: convId,
+        cached: false,
+        sources: mappedSources,
+      })}\n\n`
+    );
+
+    let fullAnswer = '';
+
+    await streamAnswer({
+      question: cleanQ,
+      contextChunks: mappedSources,
+      onToken: (token) => {
+        fullAnswer += token;
+        res.write(`data: ${JSON.stringify({ type: 'token', token })}\n\n`);
+      },
+      onComplete: async (completedText) => {
+        const finalAnswer = completedText || fullAnswer;
+        await setCachedQuery(targetDocIds, cleanQ, {
+          answer: finalAnswer,
+          sources: mappedSources,
+        });
+
+        res.write(
+          `data: ${JSON.stringify({
+            type: 'done',
+            fullAnswer: finalAnswer,
+            cached: false,
+          })}\n\n`
+        );
+        res.end();
+      },
+      onError: (err) => {
+        res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+        res.end();
+      },
+    });
+  } catch (error) {
+    if (!res.headersSent) {
+      return res.status(500).json({ error: error.message || 'Multi-document ask error' });
     }
     res.end();
   }
@@ -327,6 +581,8 @@ router.delete('/:id', async (req, res) => {
     if (!doc) {
       return res.status(404).json({ error: 'Document not found' });
     }
+
+    await invalidateDocumentCache(doc._id);
 
     if (doc.filePath && fs.existsSync(doc.filePath)) {
       try {

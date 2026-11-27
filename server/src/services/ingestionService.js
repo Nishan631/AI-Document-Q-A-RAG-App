@@ -6,9 +6,22 @@ import { getBatchEmbeddings } from './embeddingService.js';
 
 /**
  * Asynchronously processes and vectorizes an uploaded PDF document.
+ * Reports live progress (0-100%) and step messages to both caller and MongoDB Document record.
  */
-export const processDocumentIngestion = async (documentId) => {
+export const processDocumentIngestion = async (documentId, progressCallback) => {
   console.log(`[Ingestion] Starting ingestion for document: ${documentId}`);
+
+  const updateProgress = async (progress, step) => {
+    try {
+      await Document.findByIdAndUpdate(documentId, {
+        ingestionProgress: progress,
+        ingestionStep: step,
+      });
+      if (progressCallback) progressCallback(progress, step);
+    } catch (e) {
+      // Non-critical progress write failure
+    }
+  };
 
   const doc = await Document.findById(documentId);
   if (!doc) {
@@ -18,6 +31,7 @@ export const processDocumentIngestion = async (documentId) => {
   try {
     doc.status = 'processing';
     await doc.save();
+    await updateProgress(10, 'Extracting text page-by-page...');
 
     // 1. Extract text page-by-page if not already extracted
     let pages = doc.extractedPages;
@@ -29,6 +43,7 @@ export const processDocumentIngestion = async (documentId) => {
         doc.status = 'failed';
         doc.errorMessage = 'No selectable text found. This document may be scanned or empty.';
         doc.pageCount = extraction.pageCount;
+        doc.ingestionStep = 'Failed: Scanned or empty PDF';
         await doc.save();
         return { success: false, error: doc.errorMessage };
       }
@@ -39,8 +54,9 @@ export const processDocumentIngestion = async (documentId) => {
       await doc.save();
     }
 
+    await updateProgress(35, `Extracted ${pages.length} pages. Chunking text...`);
+
     // 2. Chunk text with sliding window & sentence preservation
-    console.log(`[Ingestion] Chunking ${pages.length} pages...`);
     const rawChunks = createChunksFromPages(pages, {
       chunkSizeWords: 500,
       overlapWords: 80,
@@ -49,17 +65,22 @@ export const processDocumentIngestion = async (documentId) => {
     if (rawChunks.length === 0) {
       doc.status = 'failed';
       doc.errorMessage = 'Document text was empty after chunking.';
+      doc.ingestionStep = 'Failed: Empty text after chunking';
       await doc.save();
       return { success: false, error: doc.errorMessage };
     }
 
-    console.log(`[Ingestion] Generated ${rawChunks.length} chunks. Generating embeddings...`);
+    await updateProgress(50, `Generating embeddings for ${rawChunks.length} chunks...`);
 
     // 3. Generate 768-dimensional embeddings for all chunks in batch
     const texts = rawChunks.map((c) => c.text);
-    const embeddings = await getBatchEmbeddings(texts, (progress) => {
-      console.log(`[Ingestion] Embeddings progress: ${progress}%`);
+    const embeddings = await getBatchEmbeddings(texts, async (embedPercent) => {
+      // Map 0-100% of embeddings to 50-85% of overall ingestion
+      const overall = Math.round(50 + (embedPercent * 0.35));
+      await updateProgress(overall, `Embedding vector representations (${embedPercent}%)...`);
     });
+
+    await updateProgress(88, 'Storing vector chunks in MongoDB Atlas...');
 
     // 4. Clear any old chunks for this document (idempotent)
     await Chunk.deleteMany({ documentId: doc._id });
@@ -79,6 +100,8 @@ export const processDocumentIngestion = async (documentId) => {
     // 6. Update document status to ready
     doc.status = 'ready';
     doc.errorMessage = null;
+    doc.ingestionProgress = 100;
+    doc.ingestionStep = 'Ready for questions with verified citations.';
     await doc.save();
 
     console.log(
@@ -94,6 +117,7 @@ export const processDocumentIngestion = async (documentId) => {
     console.error(`[Ingestion Failed] Error indexing document ${documentId}:`, error);
     doc.status = 'failed';
     doc.errorMessage = error.message || 'Error occurred during ingestion and vectorization';
+    doc.ingestionStep = 'Ingestion failed';
     await doc.save();
     return { success: false, error: doc.errorMessage };
   }

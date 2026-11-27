@@ -46,6 +46,14 @@ const documentSchema = new mongoose.Schema(
       default: 'processing',
       index: true,
     },
+    ingestionProgress: {
+      type: Number,
+      default: 0,
+    },
+    ingestionStep: {
+      type: String,
+      default: 'Queued for ingestion...',
+    },
     errorMessage: {
       type: String,
       default: null,
