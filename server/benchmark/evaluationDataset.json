@@ -1,0 +1,225 @@
+{
+  "document": {
+    "title": "Acme Global Enterprise Policy & Employee Handbook",
+    "fileName": "acme_handbook_2026.pdf",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "text": "Chapter 1: Working Hours & Remote Work Guidelines. Acme Global standard business hours are 9:00 AM to 5:00 PM local time. Core collaboration hours are mandated from 10:00 AM to 3:00 PM. Full-time team members are eligible for up to two remote work days per week with departmental manager approval under Policy WRK-101. Overtime work requires pre-authorization in writing."
+      },
+      {
+        "pageNumber": 2,
+        "text": "Chapter 2: Paid Time Off (PTO) & Leave Entitlements. Regular full-time employees accrue 15 paid time off (PTO) days during their first three years of service, accruing at 1.25 days per completed calendar month. Employees may carry over a maximum of 5 unused PTO days into the following calendar year. Sick leave is allocated as 5 standalone days per year under Clause LEV-202. Bereavement leave provides up to 3 consecutive paid business days."
+      },
+      {
+        "pageNumber": 3,
+        "text": "Chapter 3: Healthcare & Wellness Benefits. Healthcare coverage is administered through BlueCross BlueShield Comprehensive PPO under Group Policy #BC-9941. Dental coverage is provided via MetLife under Plan #DNT-880. Employees qualify for an annual wellness reimbursement stipend of up to $500 for gym memberships, fitness trackers, or ergonomic equipment submitted by November 30."
+      },
+      {
+        "pageNumber": 4,
+        "text": "Chapter 4: IT Equipment & Cybersecurity Standards. All newly onboarded employees receive a standard issue 16-inch Apple MacBook Pro M3 or Lenovo ThinkPad X1. Corporate network access mandates mandatory multi-factor authentication (MFA) and connection via the Acme Secure Gateway VPN. Passwords must contain a minimum of 14 characters and expire every 90 days under Protocol SEC-404. Unauthorized software installation is strictly prohibited."
+      },
+      {
+        "pageNumber": 5,
+        "text": "Chapter 5: Travel & Business Expense Reimbursement. Domestic business travel accommodations are limited to standard coach class airfare. The daily meal per diem allowance is capped at $75 per day ($15 breakfast, $25 lunch, $35 dinner). Lodging must not exceed the standard city rate of $220 per night. Itemized receipts are mandatory for all individual expenses exceeding $25 under Fiscal Code EXP-505."
+      },
+      {
+        "pageNumber": 6,
+        "text": "Chapter 6: Performance Evaluation & Compensation Cycles. Formal performance appraisals are conducted bi-annually during the months of June and December. Merit salary adjustments and discretionary annual bonuses are determined during the Q4 review cycle based on achieving individual and team key results (OKRs). Employees must maintain a rating of Meets Expectations or higher to qualify for bonus incentives under Framework PRF-606."
+      },
+      {
+        "pageNumber": 7,
+        "text": "Chapter 7: Ethics, Code of Conduct & Whistleblower Protections. Acme maintains a zero-tolerance policy regarding workplace harassment, discrimination, and retaliation. Suspected compliance violations, accounting irregularities, or safety hazards must be reported promptly to the confidential Ethics Hotline at 1-800-555-ETHIC or via portal ethics.acme.com under Policy ETH-707. Retaliation against whistleblowers results in immediate termination."
+      },
+      {
+        "pageNumber": 8,
+        "text": "Chapter 8: Separation of Employment & Severance. Employees resigning in good standing are requested to provide a minimum of two weeks written notice. Severance pay for qualifying involuntary reductions in force is calculated as one week of base salary for each full year of continuous service, with a minimum payment of two weeks and a cap of twenty-six weeks under Severance Schedule SEV-808."
+      },
+      {
+        "pageNumber": 9,
+        "text": "Chapter 9: Intellectual Property & Confidentiality. All inventions, proprietary software, design assets, and research authored during the term of employment remain the exclusive intellectual property of Acme Global under Agreement IP-909. Proprietary trade secrets, customer pricing structures, and unreleased source code are protected indefinitely even following post-employment separation."
+      },
+      {
+        "pageNumber": 10,
+        "text": "Chapter 10: Continuing Education & Tuition Support. Employees with at least one continuous year of service may apply for tuition assistance of up to $2,000 per calendar year for accredited university degree programs or professional certifications directly related to their role under Program EDU-1010. Participants agree to remain with Acme for a minimum of 12 months following receipt of tuition funds or repay the grant on a prorated basis."
+      }
+    ]
+  },
+  "questions": [
+    {
+      "id": 1,
+      "question": "What are the core collaboration hours required for all team members?",
+      "expectedPage": 1,
+      "expectedKeywords": ["10:00 AM", "3:00 PM"],
+      "groundTruth": "Core collaboration hours are from 10:00 AM to 3:00 PM."
+    },
+    {
+      "id": 2,
+      "question": "How many remote work days are allowed per week?",
+      "expectedPage": 1,
+      "expectedKeywords": ["two", "2", "remote"],
+      "groundTruth": "Up to two remote work days per week with departmental manager approval."
+    },
+    {
+      "id": 3,
+      "question": "What is the policy code for remote work?",
+      "expectedPage": 1,
+      "expectedKeywords": ["WRK-101"],
+      "groundTruth": "The policy code for remote work is WRK-101."
+    },
+    {
+      "id": 4,
+      "question": "How many days of paid time off (PTO) do employees accrue per month in their first three years?",
+      "expectedPage": 2,
+      "expectedKeywords": ["1.25", "month", "15"],
+      "groundTruth": "Employees accrue 1.25 days per calendar month, totaling 15 days per year."
+    },
+    {
+      "id": 5,
+      "question": "How many unused PTO days can be carried over into the next year?",
+      "expectedPage": 2,
+      "expectedKeywords": ["5", "carry over"],
+      "groundTruth": "A maximum of 5 unused PTO days may be carried over."
+    },
+    {
+      "id": 6,
+      "question": "What clause covers sick leave entitlements and how many days are given?",
+      "expectedPage": 2,
+      "expectedKeywords": ["LEV-202", "5"],
+      "groundTruth": "Clause LEV-202 covers sick leave, providing 5 standalone days per year."
+    },
+    {
+      "id": 7,
+      "question": "How many days of paid leave are provided for bereavement?",
+      "expectedPage": 2,
+      "expectedKeywords": ["3", "bereavement"],
+      "groundTruth": "Up to 3 consecutive paid business days for bereavement leave."
+    },
+    {
+      "id": 8,
+      "question": "What is the group policy number for BlueCross BlueShield healthcare coverage?",
+      "expectedPage": 3,
+      "expectedKeywords": ["#BC-9941", "BC-9941"],
+      "groundTruth": "The group policy number is #BC-9941."
+    },
+    {
+      "id": 9,
+      "question": "What is the dental plan number provided through MetLife?",
+      "expectedPage": 3,
+      "expectedKeywords": ["#DNT-880", "DNT-880"],
+      "groundTruth": "The dental plan number is #DNT-880."
+    },
+    {
+      "id": 10,
+      "question": "What is the annual dollar amount for the wellness reimbursement stipend?",
+      "expectedPage": 3,
+      "expectedKeywords": ["$500", "500", "wellness"],
+      "groundTruth": "The annual wellness reimbursement stipend is up to $500."
+    },
+    {
+      "id": 11,
+      "question": "What is the deadline date to submit wellness reimbursement receipts?",
+      "expectedPage": 3,
+      "expectedKeywords": ["November 30"],
+      "groundTruth": "Receipts must be submitted by November 30."
+    },
+    {
+      "id": 12,
+      "question": "How many characters must a corporate password contain?",
+      "expectedPage": 4,
+      "expectedKeywords": ["14", "characters"],
+      "groundTruth": "Passwords must contain a minimum of 14 characters."
+    },
+    {
+      "id": 13,
+      "question": "How frequently do corporate passwords expire under cybersecurity Protocol SEC-404?",
+      "expectedPage": 4,
+      "expectedKeywords": ["90 days", "SEC-404"],
+      "groundTruth": "Passwords expire every 90 days under Protocol SEC-404."
+    },
+    {
+      "id": 14,
+      "question": "What standard laptop models are issued to new employees?",
+      "expectedPage": 4,
+      "expectedKeywords": ["MacBook Pro", "ThinkPad"],
+      "groundTruth": "A 16-inch Apple MacBook Pro M3 or Lenovo ThinkPad X1."
+    },
+    {
+      "id": 15,
+      "question": "What is the daily meal per diem cap for business travel?",
+      "expectedPage": 5,
+      "expectedKeywords": ["$75", "75"],
+      "groundTruth": "The daily meal per diem allowance is capped at $75 per day."
+    },
+    {
+      "id": 16,
+      "question": "What is the maximum allowed lodging rate per night for domestic travel?",
+      "expectedPage": 5,
+      "expectedKeywords": ["$220", "220"],
+      "groundTruth": "Lodging must not exceed $220 per night."
+    },
+    {
+      "id": 17,
+      "question": "At what dollar threshold are itemized receipts mandatory under Fiscal Code EXP-505?",
+      "expectedPage": 5,
+      "expectedKeywords": ["$25", "25", "EXP-505"],
+      "groundTruth": "Itemized receipts are mandatory for all expenses exceeding $25."
+    },
+    {
+      "id": 18,
+      "question": "In which months are formal employee performance appraisals conducted?",
+      "expectedPage": 6,
+      "expectedKeywords": ["June", "December"],
+      "groundTruth": "Performance appraisals occur bi-annually in June and December."
+    },
+    {
+      "id": 19,
+      "question": "What is the performance rating required to qualify for bonus incentives under Framework PRF-606?",
+      "expectedPage": 6,
+      "expectedKeywords": ["Meets Expectations", "PRF-606"],
+      "groundTruth": "Employees must maintain a rating of Meets Expectations or higher."
+    },
+    {
+      "id": 20,
+      "question": "What is the phone number for the confidential Ethics and Whistleblower Hotline?",
+      "expectedPage": 7,
+      "expectedKeywords": ["1-800-555-ETHIC", "ETH-707"],
+      "groundTruth": "The confidential Ethics Hotline is 1-800-555-ETHIC under Policy ETH-707."
+    },
+    {
+      "id": 21,
+      "question": "How much written advance notice is requested when resigning in good standing?",
+      "expectedPage": 8,
+      "expectedKeywords": ["two weeks", "2 weeks"],
+      "groundTruth": "A minimum of two weeks written notice is requested."
+    },
+    {
+      "id": 22,
+      "question": "How is severance pay calculated under Severance Schedule SEV-808?",
+      "expectedPage": 8,
+      "expectedKeywords": ["one week", "year of service", "SEV-808"],
+      "groundTruth": "One week of base salary for each full year of continuous service, capped at 26 weeks."
+    },
+    {
+      "id": 23,
+      "question": "What agreement code governs company intellectual property and proprietary inventions?",
+      "expectedPage": 9,
+      "expectedKeywords": ["IP-909"],
+      "groundTruth": "Company intellectual property is governed by Agreement IP-909."
+    },
+    {
+      "id": 24,
+      "question": "What is the maximum annual tuition assistance under Program EDU-1010?",
+      "expectedPage": 10,
+      "expectedKeywords": ["$2,000", "2000", "EDU-1010"],
+      "groundTruth": "Up to $2,000 per calendar year for accredited university programs or certifications."
+    },
+    {
+      "id": 25,
+      "question": "How long must an employee remain at Acme after receiving tuition assistance to avoid repayment?",
+      "expectedPage": 10,
+      "expectedKeywords": ["12 months", "1 year"],
+      "groundTruth": "Participants must remain with Acme for a minimum of 12 months after receiving funds."
+    }
+  ]
+}
