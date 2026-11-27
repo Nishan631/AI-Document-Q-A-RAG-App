@@ -1,0 +1,730 @@
+{
+  "resultsTable": [
+    {
+      "mode": "Hybrid Search (Vector + BM25 RRF)",
+      "hitRate5": "100.0%",
+      "hitRate1": "100.0%",
+      "mrr": "1.000",
+      "avgLatency": "1378 ms",
+      "accuracy": "84.0%"
+    },
+    {
+      "mode": "Vector-Only Search",
+      "hitRate5": "100.0%",
+      "hitRate1": "100.0%",
+      "mrr": "1.000",
+      "avgLatency": "1183 ms",
+      "accuracy": "N/A"
+    },
+    {
+      "mode": "Keyword-Only Search",
+      "hitRate5": "100.0%",
+      "hitRate1": "100.0%",
+      "mrr": "1.000",
+      "avgLatency": "171 ms",
+      "accuracy": "N/A"
+    }
+  ],
+  "detailedLogs": [
+    {
+      "id": 1,
+      "question": "What are the core collaboration hours required for all team members?",
+      "expectedPage": 1,
+      "groundTruth": "Core collaboration hours are from 10:00 AM to 3:00 PM.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 753,
+          "topPage": 1
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 779,
+          "topPage": 1
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 152,
+          "topPage": 1
+        }
+      },
+      "generatedAnswer": "Core collaboration hours are mandated from 10:00 AM to 3:00 PM [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 2,
+      "question": "How many remote work days are allowed per week?",
+      "expectedPage": 1,
+      "groundTruth": "Up to two remote work days per week with departmental manager approval.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 824,
+          "topPage": 1
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 720,
+          "topPage": 1
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 103,
+          "topPage": 1
+        }
+      },
+      "generatedAnswer": "Full-time team members are eligible for up to two remote work days per week with departmental manager approval under Policy WRK-101 [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 3,
+      "question": "What is the policy code for remote work?",
+      "expectedPage": 1,
+      "groundTruth": "The policy code for remote work is WRK-101.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1195,
+          "topPage": 1
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 812,
+          "topPage": 1
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 111,
+          "topPage": 1
+        }
+      },
+      "generatedAnswer": "The policy code for remote work is WRK-101 [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 4,
+      "question": "How many days of paid time off (PTO) do employees accrue per month in their first three years?",
+      "expectedPage": 2,
+      "groundTruth": "Employees accrue 1.25 days per calendar month, totaling 15 days per year.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 759,
+          "topPage": 2
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 697,
+          "topPage": 2
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 100,
+          "topPage": 2
+        }
+      },
+      "generatedAnswer": "Employees accrue 25 days of paid time off (PTO) per completed calendar month [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 5,
+      "question": "How many unused PTO days can be carried over into the next year?",
+      "expectedPage": 2,
+      "groundTruth": "A maximum of 5 unused PTO days may be carried over.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 761,
+          "topPage": 2
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 830,
+          "topPage": 2
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 112,
+          "topPage": 2
+        }
+      },
+      "generatedAnswer": "Employees may carry over a maximum of 5 unused PTO days into the following calendar year [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 6,
+      "question": "What clause covers sick leave entitlements and how many days are given?",
+      "expectedPage": 2,
+      "groundTruth": "Clause LEV-202 covers sick leave, providing 5 standalone days per year.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1098,
+          "topPage": 2
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 713,
+          "topPage": 2
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 98,
+          "topPage": 2
+        }
+      },
+      "generatedAnswer": "Sick leave is covered under Clause LEV-202, and it is allocated as 5 standalone days per year [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 7,
+      "question": "How many days of paid leave are provided for bereavement?",
+      "expectedPage": 2,
+      "groundTruth": "Up to 3 consecutive paid business days for bereavement leave.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 918,
+          "topPage": 2
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 702,
+          "topPage": 2
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 95,
+          "topPage": 2
+        }
+      },
+      "generatedAnswer": "Bereavement leave provides up to 3 consecutive paid business days [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 8,
+      "question": "What is the group policy number for BlueCross BlueShield healthcare coverage?",
+      "expectedPage": 3,
+      "groundTruth": "The group policy number is #BC-9941.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1304,
+          "topPage": 3
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 974,
+          "topPage": 3
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 137,
+          "topPage": 3
+        }
+      },
+      "generatedAnswer": "The group policy number for BlueCross BlueShield healthcare coverage is #BC-9941 [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 9,
+      "question": "What is the dental plan number provided through MetLife?",
+      "expectedPage": 3,
+      "groundTruth": "The dental plan number is #DNT-880.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 786,
+          "topPage": 3
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 705,
+          "topPage": 3
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 95,
+          "topPage": 3
+        }
+      },
+      "generatedAnswer": "The dental plan number provided through MetLife is #DNT-880 [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 10,
+      "question": "What is the annual dollar amount for the wellness reimbursement stipend?",
+      "expectedPage": 3,
+      "groundTruth": "The annual wellness reimbursement stipend is up to $500.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1282,
+          "topPage": 3
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1238,
+          "topPage": 3
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 129,
+          "topPage": 3
+        }
+      },
+      "generatedAnswer": "The annual wellness reimbursement stipend is up to $500 [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 11,
+      "question": "What is the deadline date to submit wellness reimbursement receipts?",
+      "expectedPage": 3,
+      "groundTruth": "Receipts must be submitted by November 30.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1361,
+          "topPage": 3
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 732,
+          "topPage": 3
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 100,
+          "topPage": 3
+        }
+      },
+      "generatedAnswer": "The deadline date to submit wellness reimbursement receipts is November 30 [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 12,
+      "question": "How many characters must a corporate password contain?",
+      "expectedPage": 4,
+      "groundTruth": "Passwords must contain a minimum of 14 characters.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1447,
+          "topPage": 4
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 763,
+          "topPage": 4
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 96,
+          "topPage": 4
+        }
+      },
+      "generatedAnswer": "A corporate password must contain a minimum of 14 characters [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 13,
+      "question": "How frequently do corporate passwords expire under cybersecurity Protocol SEC-404?",
+      "expectedPage": 4,
+      "groundTruth": "Passwords expire every 90 days under Protocol SEC-404.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1288,
+          "topPage": 4
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1052,
+          "topPage": 4
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 99,
+          "topPage": 4
+        }
+      },
+      "generatedAnswer": "Under cybersecurity Protocol SEC-404, corporate passwords expire every 90 days [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 14,
+      "question": "What standard laptop models are issued to new employees?",
+      "expectedPage": 4,
+      "groundTruth": "A 16-inch Apple MacBook Pro M3 or Lenovo ThinkPad X1.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1178,
+          "topPage": 4
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1514,
+          "topPage": 4
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 274,
+          "topPage": 4
+        }
+      },
+      "generatedAnswer": "Newly onboarded employees receive a standard issue 16-inch Apple MacBook Pro M3 or Lenovo ThinkPad X1 [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 15,
+      "question": "What is the daily meal per diem cap for business travel?",
+      "expectedPage": 5,
+      "groundTruth": "The daily meal per diem allowance is capped at $75 per day.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 983,
+          "topPage": 5
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1657,
+          "topPage": 5
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 331,
+          "topPage": 5
+        }
+      },
+      "generatedAnswer": "The daily meal per diem allowance is capped at $75 per day ($15 breakfast, $25 lunch, $35 dinner) [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 16,
+      "question": "What is the maximum allowed lodging rate per night for domestic travel?",
+      "expectedPage": 5,
+      "groundTruth": "Lodging must not exceed $220 per night.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 2504,
+          "topPage": 5
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 2096,
+          "topPage": 5
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 163,
+          "topPage": 5
+        }
+      },
+      "generatedAnswer": "The maximum allowed lodging rate for domestic travel is $220 per night [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 17,
+      "question": "At what dollar threshold are itemized receipts mandatory under Fiscal Code EXP-505?",
+      "expectedPage": 5,
+      "groundTruth": "Itemized receipts are mandatory for all expenses exceeding $25.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1744,
+          "topPage": 5
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1815,
+          "topPage": 5
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 156,
+          "topPage": 5
+        }
+      },
+      "generatedAnswer": "Itemized receipts are mandatory for all individual expenses exceeding $25 under Fiscal Code EXP-505 [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 18,
+      "question": "In which months are formal employee performance appraisals conducted?",
+      "expectedPage": 6,
+      "groundTruth": "Performance appraisals occur bi-annually in June and December.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 2042,
+          "topPage": 6
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1736,
+          "topPage": 6
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 125,
+          "topPage": 6
+        }
+      },
+      "generatedAnswer": "Formal employee performance appraisals are conducted bi-annually during the months of June and December [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 19,
+      "question": "What is the performance rating required to qualify for bonus incentives under Framework PRF-606?",
+      "expectedPage": 6,
+      "groundTruth": "Employees must maintain a rating of Meets Expectations or higher.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 2276,
+          "topPage": 6
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 2023,
+          "topPage": 6
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 390,
+          "topPage": 6
+        }
+      },
+      "generatedAnswer": "To qualify for bonus incentives under Framework PRF-606, employees must maintain a rating of",
+      "isAccurate": false
+    },
+    {
+      "id": 20,
+      "question": "What is the phone number for the confidential Ethics and Whistleblower Hotline?",
+      "expectedPage": 7,
+      "groundTruth": "The confidential Ethics Hotline is 1-800-555-ETHIC under Policy ETH-707.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1965,
+          "topPage": 7
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1817,
+          "topPage": 7
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 98,
+          "topPage": 7
+        }
+      },
+      "generatedAnswer": "I cannot find the answer to this question in the provided document.",
+      "isAccurate": false
+    },
+    {
+      "id": 21,
+      "question": "How much written advance notice is requested when resigning in good standing?",
+      "expectedPage": 8,
+      "groundTruth": "A minimum of two weeks written notice is requested.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1244,
+          "topPage": 8
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 853,
+          "topPage": 8
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 231,
+          "topPage": 8
+        }
+      },
+      "generatedAnswer": "Employees resigning in good standing are requested to provide a minimum of two weeks",
+      "isAccurate": true
+    },
+    {
+      "id": 22,
+      "question": "How is severance pay calculated under Severance Schedule SEV-808?",
+      "expectedPage": 8,
+      "groundTruth": "One week of base salary for each full year of continuous service, capped at 26 weeks.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 2106,
+          "topPage": 8
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1594,
+          "topPage": 8
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 289,
+          "topPage": 8
+        }
+      },
+      "generatedAnswer": "Severance pay for qualifying involuntary reductions in force",
+      "isAccurate": false
+    },
+    {
+      "id": 23,
+      "question": "What agreement code governs company intellectual property and proprietary inventions?",
+      "expectedPage": 9,
+      "groundTruth": "Company intellectual property is governed by Agreement IP-909.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1475,
+          "topPage": 9
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1565,
+          "topPage": 9
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 504,
+          "topPage": 9
+        }
+      },
+      "generatedAnswer": "The agreement code that governs company intellectual property and proprietary inventions is Agreement IP-909 [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 24,
+      "question": "What is the maximum annual tuition assistance under Program EDU-1010?",
+      "expectedPage": 10,
+      "groundTruth": "Up to $2,000 per calendar year for accredited university programs or certifications.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1498,
+          "topPage": 10
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1146,
+          "topPage": 10
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 98,
+          "topPage": 10
+        }
+      },
+      "generatedAnswer": "The maximum annual tuition assistance under Program EDU-1010 is up to $2,000 per calendar year [1].",
+      "isAccurate": true
+    },
+    {
+      "id": 25,
+      "question": "How long must an employee remain at Acme after receiving tuition assistance to avoid repayment?",
+      "expectedPage": 10,
+      "groundTruth": "Participants must remain with Acme for a minimum of 12 months after receiving funds.",
+      "modes": {
+        "hybrid": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1670,
+          "topPage": 10
+        },
+        "vector": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 1042,
+          "topPage": 10
+        },
+        "keyword": {
+          "rank": 1,
+          "hitAt5": true,
+          "latencyMs": 187,
+          "topPage": 10
+        }
+      },
+      "generatedAnswer": "An employee",
+      "isAccurate": false
+    }
+  ]
+}
